@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-    PCTweaks - safe, reversible performance / gaming / privacy / quality-of-life tweaks for Windows 10/11.
+    ITZHAK PC TWEAKS - safe, reversible performance / gaming / privacy / quality-of-life tweaks for Windows 10/11.
 
 .DESCRIPTION
     Interactive menu (run with no parameters) or non-interactive via switches.
-    Every registry change is backed up to $env:ProgramData\PCTweaks\state.json before it is made,
+    Every registry change is backed up to $env:ProgramData\ItzhakPCTweaks\state.json before it is made,
     so "Undo all" can restore the original values, remove values that did not exist, and delete
     registry keys the tool created. A System Restore point is created before the first change.
+    State from older versions ($env:ProgramData\PCTweaks\state.json) is migrated automatically.
 
 .PARAMETER Recommended
     Apply all tweaks marked as recommended, without prompting.
@@ -21,11 +22,11 @@
     With -Maintenance: also run DISM /RestoreHealth and sfc /scannow (slow).
 
 .EXAMPLE
-    .\PCTweaks.ps1
+    .\ItzhakPCTweaks.ps1
 .EXAMPLE
-    .\PCTweaks.ps1 -Recommended -Maintenance
+    .\ItzhakPCTweaks.ps1 -Recommended -Maintenance
 .EXAMPLE
-    .\PCTweaks.ps1 -Undo
+    .\ItzhakPCTweaks.ps1 -Undo
 #>
 [CmdletBinding()]
 param(
@@ -36,6 +37,8 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
+$script:AppName = 'ITZHAK PC TWEAKS'
+try { $Host.UI.RawUI.WindowTitle = $script:AppName } catch { }
 
 # ---------------------------------------------------------------------------
 # Console helpers
@@ -57,13 +60,14 @@ function Read-YesNo([string]$Question, [bool]$Default = $false) {
 # ---------------------------------------------------------------------------
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Err 'PCTweaks must be run as Administrator. Use Run-PCTweaks.bat or an elevated PowerShell.'
+    Write-Err "$($script:AppName) must be run as Administrator. Use Run-ItzhakPCTweaks.bat or an elevated PowerShell."
     exit 1
 }
 
 $script:Interactive = -not ($Recommended -or $Undo -or $Maintenance)
-$script:StateDir    = Join-Path $env:ProgramData 'PCTweaks'
+$script:StateDir    = Join-Path $env:ProgramData 'ItzhakPCTweaks'
 $script:StateFile   = Join-Path $script:StateDir 'state.json'
+$script:LegacyStateFile = Join-Path (Join-Path $env:ProgramData 'PCTweaks') 'state.json'
 $script:RestorePointDone = $false
 $script:GuidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 $script:UltimateGuid = 'e9a42b02-d5df-448d-aa00-03f14749eb61'
@@ -71,6 +75,18 @@ $script:HighPerfGuid = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
 
 if (-not (Test-Path -LiteralPath $script:StateDir)) {
     New-Item -ItemType Directory -Path $script:StateDir -Force | Out-Null
+}
+
+# Older versions stored their backup under %ProgramData%\PCTweaks; carry it over so Undo still works.
+if (-not (Test-Path -LiteralPath $script:StateFile) -and (Test-Path -LiteralPath $script:LegacyStateFile)) {
+    try {
+        Copy-Item -LiteralPath $script:LegacyStateFile -Destination $script:StateFile -ErrorAction Stop
+        Move-Item -LiteralPath $script:LegacyStateFile -Destination ($script:LegacyStateFile + '.migrated') -Force -ErrorAction SilentlyContinue
+        Write-Info "Migrated previous backup from $($script:LegacyStateFile) to $($script:StateFile)."
+    } catch {
+        Write-Warn "Could not migrate $($script:LegacyStateFile): $($_.Exception.Message). Using it in place."
+        $script:StateFile = $script:LegacyStateFile
+    }
 }
 
 $script:OSBuild = 0
@@ -548,12 +564,12 @@ function New-SafeRestorePoint {
     Write-Info 'Creating a System Restore point (this can take a minute)...'
     try {
         Enable-ComputerRestore -Drive "$env:SystemDrive\" -ErrorAction Stop
-        Checkpoint-Computer -Description ("PCTweaks {0}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm')) `
+        Checkpoint-Computer -Description ("{0} - before tweaks {1}" -f $script:AppName, (Get-Date -Format 'yyyy-MM-dd HH:mm')) `
             -RestorePointType MODIFY_SETTINGS -ErrorAction Stop
         Write-Ok 'Restore point requested. (Windows allows only one per 24h; if one was made recently, it is reused.)'
     } catch {
         Write-Warn "Could not create a restore point: $($_.Exception.Message)"
-        Write-Warn 'PCTweaks still backs up every change to state.json, so Undo will work.'
+        Write-Warn "$($script:AppName) still backs up every change to state.json, so Undo will work."
         if ($script:Interactive -and -not (Read-YesNo 'Continue without a restore point?' $true)) {
             return $false
         }
@@ -824,9 +840,17 @@ function Show-PickMenu {
 function Show-MainMenu {
     while ($true) {
         Write-Host ''
-        Write-Host '=============================================' -ForegroundColor DarkCyan
-        Write-Host '                 PC TWEAKS' -ForegroundColor Cyan
-        Write-Host '=============================================' -ForegroundColor DarkCyan
+        Write-Host '  +========================================================+' -ForegroundColor DarkCyan
+        Write-Host '  |                                                        |' -ForegroundColor DarkCyan
+        Write-Host '  |           ### ##### ##### #   #  ###  #   #            |' -ForegroundColor Cyan
+        Write-Host '  |            #    #      #  #   # #   # #  #             |' -ForegroundColor Cyan
+        Write-Host '  |            #    #     #   ##### ##### ###              |' -ForegroundColor Cyan
+        Write-Host '  |            #    #    #    #   # #   # #  #             |' -ForegroundColor Cyan
+        Write-Host '  |           ###   #   ##### #   # #   # #   #            |' -ForegroundColor Cyan
+        Write-Host '  |                                                        |' -ForegroundColor DarkCyan
+        Write-Host '  |                    ITZHAK PC TWEAKS                    |' -ForegroundColor White
+        Write-Host '  |         performance - gaming - privacy - undo          |' -ForegroundColor DarkGray
+        Write-Host '  +========================================================+' -ForegroundColor DarkCyan
         Write-Host "  Windows build $($script:OSBuild)$(if ($script:IsLaptop) { '  (laptop detected)' })"
         Write-Host ''
         Write-Host '  [1] Apply recommended tweaks'
@@ -850,7 +874,7 @@ function Show-MainMenu {
                 Invoke-Maintenance $deep
             }
             '4' {
-                if (Read-YesNo 'Revert every change PCTweaks has made?' $false) { Undo-AllTweaks }
+                if (Read-YesNo "Revert every change $($script:AppName) has made?" $false) { Undo-AllTweaks }
             }
             '5' { Show-Status }
             'Q' { return }
@@ -862,9 +886,10 @@ function Show-MainMenu {
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-$logFile = Join-Path $script:StateDir ("PCTweaks-{0}.log" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
+$logFile = Join-Path $script:StateDir ("ItzhakPCTweaks-{0}.log" -f (Get-Date -Format 'yyyyMMdd-HHmmss'))
 $transcribing = $false
 try { Start-Transcript -LiteralPath $logFile -ErrorAction Stop | Out-Null; $transcribing = $true } catch { }
+Write-Info "$($script:AppName) started $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 
 try {
     if ($script:Interactive) {
@@ -882,4 +907,4 @@ try {
 } finally {
     if ($transcribing) { Stop-Transcript | Out-Null }
 }
-Write-Host "Log: $logFile"
+Write-Host "$($script:AppName) log: $logFile"

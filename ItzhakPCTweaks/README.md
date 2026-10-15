@@ -1,4 +1,4 @@
-# PCTweaks
+# ITZHAK PC TWEAKS
 
 A safe, reversible tweak tool for Windows 10/11. It covers performance, gaming, privacy/debloat and quality-of-life settings, plus a maintenance routine. Every change is backed up and can be undone.
 
@@ -6,8 +6,8 @@ It contains no placebo or risky tweaks. It does **not** disable Defender, Window
 
 ## How to run
 
-1. Download the `PCTweaks` folder.
-2. Double-click **`Run-PCTweaks.bat`** and accept the UAC prompt.
+1. Download the `ItzhakPCTweaks` folder.
+2. Double-click **`Run-ItzhakPCTweaks.bat`** and accept the UAC prompt.
 3. Pick an option from the menu:
 
 ```
@@ -22,12 +22,12 @@ It contains no placebo or risky tweaks. It does **not** disable Defender, Window
 Non-interactive use (from an elevated PowerShell, or pass the same switches to the `.bat`):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\PCTweaks.ps1 -Recommended
-powershell -ExecutionPolicy Bypass -File .\PCTweaks.ps1 -Maintenance [-DeepRepair]
-powershell -ExecutionPolicy Bypass -File .\PCTweaks.ps1 -Undo
+powershell -ExecutionPolicy Bypass -File .\ItzhakPCTweaks.ps1 -Recommended
+powershell -ExecutionPolicy Bypass -File .\ItzhakPCTweaks.ps1 -Maintenance [-DeepRepair]
+powershell -ExecutionPolicy Bypass -File .\ItzhakPCTweaks.ps1 -Undo
 ```
 
-Before the first change, PCTweaks creates a System Restore point. Logs and the backup file are written to `C:\ProgramData\PCTweaks\`.
+Before the first change, ITZHAK PC TWEAKS creates a System Restore point. Logs and the backup file are written to `C:\ProgramData\ItzhakPCTweaks\`.
 
 ## Tweaks
 
@@ -68,7 +68,7 @@ Before the first change, PCTweaks creates a System Restore point. Logs and the b
 
 ## Undo
 
-Menu option **[4]** or `-Undo` reverts everything recorded in `C:\ProgramData\PCTweaks\state.json`:
+Menu option **[4]** or `-Undo` reverts everything recorded in `C:\ProgramData\ItzhakPCTweaks\state.json`:
 
 - Registry values that existed before are restored with their original value and type.
 - Values that didn't exist before are deleted.
@@ -76,7 +76,9 @@ Menu option **[4]** or `-Undo` reverts everything recorded in `C:\ProgramData\PC
 - Services get their original startup type back.
 - The original power plan is re-activated, and the plan the tool created is deleted.
 
-After a successful undo, the backup is archived as `state.undone-<date>.json`. You can also roll back with System Restore, using the restore point named "PCTweaks ...".
+If you used an older version of the tool (named PCTweaks), its backup at `C:\ProgramData\PCTweaks\state.json` is migrated to the new folder automatically on the next run, so Undo still covers those changes.
+
+After a successful undo, the backup is archived as `state.undone-<date>.json`. You can also roll back with System Restore, using the restore point named "ITZHAK PC TWEAKS - before tweaks ...".
 
 ## Caveats
 
